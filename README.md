@@ -1,7 +1,6 @@
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
-   
+1. Run the initial setup:
+   `Setup.bat`
+2. Open `.env` and set `GEMINI_API_KEY` to your Gemini API key
+3. Start the app:
+   `Start_IDS.bat`
