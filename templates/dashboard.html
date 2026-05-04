@@ -1,0 +1,121 @@
+
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="min-h-screen">
+    {% include 'partials/header.html' %}
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div id="system-control-container">{% include 'partials/system_control.html' %}</div>
+                <div id="threat-indicator-container">{% include 'partials/threat_indicator.html' %}</div>
+                <div id="ai-insights-container">{% include 'partials/ai_insights.html' %}</div>
+                <div id="device-distribution-container">{% include 'partials/device_distribution.html' %}</div>
+            </div>
+
+            <div id="device-list-card-container">{% include 'partials/device_list_card.html' %}</div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div id="alerts-panel-container" class="lg:col-span-2">{% include 'partials/alerts_panel.html' %}</div>
+                <div id="email-settings-container" class="lg:col-span-3">{% include 'partials/email_settings.html' %}</div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div id="network-activity-container" class="lg:col-span-3">{% include 'partials/network_activity.html' %}</div>
+                <div id="threats-over-time-container" class="lg:col-span-2">{% include 'partials/threats_over_time.html' %}</div>
+            </div>
+            
+            <div id="event-log-container">{% include 'partials/event_log_card.html' %}</div>
+        </div>
+        <div id="modal-container"></div>
+    </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const socket = io();
+    let chartData = [];
+    const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } = Recharts;
+
+    function updateHtml(selector, html) {
+        const element = document.querySelector(selector);
+        if (element) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            element.replaceWith(tempDiv.firstChild);
+        }
+    }
+    
+    function updateText(selector, text) {
+        const element = document.querySelector(selector);
+        if (element) element.textContent = text;
+    }
+    
+    function playAlertSound() {
+        const audio = new Audio('https://aistudio.google.com/static/sounds/alert.mp3');
+        audio.play().catch(e => console.log("Audio play failed:", e));
+    }
+
+    socket.on('dashboard_update', (data) => {
+        Object.entries(data.html_partials).forEach(([key, html]) => {
+            const containerId = `#${key.replace(/_/g, '-')}-container`;
+            updateHtml(containerId, html);
+        });
+        
+        updateText('#alert-count-badge', data.alertCount > 0 ? data.alertCount : '');
+        
+        if (data.isAlerting) {
+            playAlertSound();
+        }
+    });
+
+    async function apiCall(url, method = 'POST', body = null) {
+        const options = {
+            method,
+            headers: {'Content-Type': 'application/json'},
+        };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            console.error(`API call failed for ${url}`);
+            return null;
+        }
+        return response.json();
+    }
+
+    document.body.addEventListener('click', async (e) => {
+        const button = e.target.closest('button[data-action]');
+        if (!button) return;
+
+        const { action, deviceId, mode } = button.dataset;
+
+        if (action === 'scan-toggle') apiCall(`/api/scan/${button.dataset.scanAction}`);
+        if (action === 'trust') apiCall(`/api/device/trust/${deviceId}`);
+        if (action === 'block') apiCall(`/api/device/block/${deviceId}`);
+        
+        if (action === 'analyze') {
+            const modalContainer = document.getElementById('modal-container');
+            modalContainer.innerHTML = `{% filter escapejs %}{% include 'partials/analysis_modal_loading.html' %}{% endfilter %}`;
+            const analysisData = await apiCall(`/api/analyze/${deviceId}`, 'GET');
+            if (analysisData) {
+                const tempDiv = document.createElement('div');
+                // This is a simplified way to inject data. In a real scenario, you'd have a more robust template system client-side or receive the full modal HTML.
+                modalContainer.innerHTML = `<div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in"><div class="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl w-full max-w-2xl"><div class="flex justify-between items-center p-4 border-b border-slate-700"><h2 class="text-xl font-bold text-white">AI Threat Analysis</h2><button data-action="close-modal" class="text-slate-500 hover:text-white">X</button></div><div class="p-6"><pre class="whitespace-pre-wrap font-sans">${analysisData.analysis}</pre></div></div></div>`;
+            }
+        }
+        
+        if(action === 'close-modal') {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        if (mode) {
+             const toggle = document.getElementById(`${mode}-toggle`);
+             const value = !toggle.classList.contains('bg-primary-500');
+             apiCall('/api/settings/mode', 'POST', { mode, value });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+
+<div class="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+    <div class="flex items-center justify-between p-4 border-b border-slate-700">
+        <h2 class="text-lg font-semibold text-white">Detected Devices ({{ devices|length }})</h2>
+        <!-- Filter dropdown would be here -->
+    </div>
+    <div id="device-list-container" class="h-[500px] overflow-y-auto">
+        {% include 'partials/device_list.html' %}
+    </div>
+</div>

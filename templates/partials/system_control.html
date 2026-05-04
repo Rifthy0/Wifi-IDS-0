@@ -1,0 +1,32 @@
+
+<div class="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+    <div class="flex items-center justify-between p-4 border-b border-slate-700">
+        <h2 class="text-lg font-semibold text-white">System Control</h2>
+    </div>
+    <div class="p-4 flex flex-col items-center justify-center space-y-4 text-center min-h-[170px]">
+        <div class="flex flex-col items-center space-y-2">
+            <button
+                data-action="scan-toggle" data-scan-action="{{ 'stop' if state.is_scanning else 'start' }}"
+                class="relative flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300 ease-in-out shadow-lg focus:outline-none focus:ring-4 {{ 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-400/50' if state.is_scanning else 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-400/50' }}"
+            >
+                {% if state.is_scanning %}<span class="absolute h-full w-full rounded-full bg-red-500 animate-pulse-fast opacity-75"></span>{% endif %}
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+            </button>
+            <span class="text-sm font-semibold">{{ 'Scanning...' if state.is_scanning else 'Start Scan' }}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-4 w-full pt-2">
+            <div class="flex flex-col items-center space-y-1">
+                <label class="text-xs text-slate-400">Learning</label>
+                <button data-mode="learning" id="learning-toggle" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors {{ 'bg-primary-500' if state.learning_mode else 'bg-slate-700' }}"><span class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform {{ 'translate-x-6' if state.learning_mode else 'translate-x-1' }}"></span></button>
+            </div>
+            <div class="flex flex-col items-center space-y-1">
+                <label class="text-xs text-slate-400">Stealth</label>
+                <button data-mode="stealth" id="stealth-toggle" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors {{ 'bg-primary-500' if state.stealth_mode else 'bg-slate-700' }}"><span class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform {{ 'translate-x-6' if state.stealth_mode else 'translate-x-1' }}"></span></button>
+            </div>
+            <div class="flex flex-col items-center space-y-1">
+                <label class="text-xs text-slate-400">Adaptive AI</label>
+                <button data-mode="adaptiveAi" id="adaptive-ai-toggle" class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors {{ 'bg-primary-500' if state.adaptive_ai_mode else 'bg-slate-700' }}"><span class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform {{ 'translate-x-6' if state.adaptive_ai_mode else 'translate-x-1' }}"></span></button>
+            </div>
+        </div>
+    </div>
+</div>

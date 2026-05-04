@@ -1,0 +1,16 @@
+
+<ul class="space-y-3">
+  {% for entry in log_entries %}
+  <li class="flex items-start">
+    <div class="mr-3 flex-shrink-0 mt-1">
+      <!-- Icon logic here -->
+    </div>
+    <div>
+      <p class="text-sm">{{ entry.message }}</p>
+      <p class="text-xs text-slate-600">{{ entry.timestamp | format_time }}</p>
+    </div>
+  </li>
+  {% else %}
+  <li class="text-center py-8 text-slate-500">No events to display.</li>
+  {% endfor %}
+</ul>

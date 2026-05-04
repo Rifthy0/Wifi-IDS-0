@@ -1,0 +1,7 @@
+{
+  "name": "Smart Wi-Fi Intrusion Detection System Dashboard",
+  "description": "A world-class React-based cybersecurity dashboard simulating real-time Wi-Fi Intrusion Detection. Features behavioral analysis, threat visualization, and Gemini 3-powered intelligence.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
