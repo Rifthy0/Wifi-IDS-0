@@ -82,9 +82,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               </button>
             </div>
           </form>
-           <p className="mt-6 text-center text-xs text-light-text-secondary dark:text-slate-500">
-            Demo credentials: admin@wifi-ids.com / password123
-          </p>
         </div>
       </div>
     </div>
