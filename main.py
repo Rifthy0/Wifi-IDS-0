@@ -41,10 +41,10 @@ async def health():
 @app.get("/api/devices")
 async def get_devices(db: AsyncSession = Depends(get_db)):
     try:
-        print("🚀 Running scanner...")
+        print("Running scanner...")
 
         process = subprocess.Popen(
-            ["python", "scanner.py"],  
+            ["python", "scanner.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=os.getcwd()
@@ -53,29 +53,24 @@ async def get_devices(db: AsyncSession = Depends(get_db)):
         stdout, stderr = process.communicate(timeout=30)
 
         if stderr:
-            print("❌ Scanner error:", stderr.decode())
+            print("Scanner stderr:", stderr.decode())
 
         stdout_str = stdout.decode()
-        print("RAW OUTPUT:", stdout_str)
 
-        # Parse JSON safely
         try:
             scan_results = json.loads(stdout_str)
         except json.JSONDecodeError as je:
-            print("❌ JSON parsing error:", str(je))
+            print("JSON parsing error:", str(je))
             return []
 
         if isinstance(scan_results, dict) and "error" in scan_results:
-            print("❌ Scan error:", scan_results["error"])
+            print("Scan error:", scan_results["error"])
             return []
 
         if not isinstance(scan_results, list):
-            print("❌ Invalid scan results format")
+            print("Invalid scan results format")
             return []
 
-        print("✅ Parsed devices:", scan_results)
-
-        # Get email configuration from environment
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", 587))
         smtp_user = os.getenv("SMTP_USER")
@@ -85,66 +80,53 @@ async def get_devices(db: AsyncSession = Depends(get_db)):
         for device in scan_results:
             mac = device.get("mac")
             rssi = device.get("rssi", -50)
-            
-            # Use anomaly detector to determine if device is suspicious
-            threat_score = detector.predict(rssi)
-            # Threshold: score < -0.5 indicates anomaly
-            is_suspicious = threat_score < -0.5
-            
+            packet_count = device.get("packet_count", 0)
+            mac_change_flag = device.get("mac_change_flag", 0)
+
+            # Multi-feature anomaly detection
+            threat_score = detector.predict(rssi, packet_count, mac_change_flag)
+            is_suspicious = threat_score < -0.1 or mac_change_flag == 1
+
             device["suspicious"] = is_suspicious
-            device["threat_score"] = max(0, min(100, int((1 - threat_score) * 50)))  # Convert to 0-100 scale
-            
-            # Map device status based on suspicion
+            device["threat_score"] = detector.score_to_threat(threat_score)
+
             if is_suspicious:
                 device["status"] = "Suspicious"
             else:
                 device["status"] = "Known"
 
-            # Send email for ALL newly detected devices (not just suspicious ones)
-            if mac not in sent_devices and smtp_user and smtp_pass:
-                print("📧 Sending email for newly detected device:", mac)
-                try:
-                    # Create device info for email
-                    device_info = {
-                        "mac": mac,
-                        "signal": f"{rssi} dBm",
-                        "vendor": device.get("vendor", "Unknown"),
-                        "reason": f"New device connected to WiFi network - Status: {'Suspicious' if is_suspicious else 'Normal'}"
-                    }
-                    
-                    send_alert_email_dynamic(
-                        device_info,
-                        smtp_server,
-                        smtp_port,
-                        smtp_user,
-                        smtp_pass,
-                        recipient_email
-                    )
-                    sent_devices.add(mac)
-                    print(f"✅ Email sent successfully for device {mac}")
-                except Exception as email_err:
-                    print(f"❌ Email sending failed for {mac}: {str(email_err)}")
+            # Send email only for new suspicious devices
+            if is_suspicious and mac and mac not in sent_devices:
+                sent_devices.add(mac)
+                if smtp_user and smtp_pass and recipient_email:
+                    try:
+                        await send_alert_email_dynamic(
+                            smtp_server=smtp_server,
+                            smtp_port=smtp_port,
+                            smtp_user=smtp_user,
+                            smtp_pass=smtp_pass,
+                            recipient_email=recipient_email,
+                            device=device
+                        )
+                        print(f"Alert email sent for {mac}")
+                    except Exception as email_err:
+                        print(f"Email error for {mac}: {email_err}")
 
-            if is_suspicious:
-                print("⚠ Suspicious device detected:", mac)
-                # Log the alert
-                new_log = EventLogModel(
-                    level="Alert",
-                    message=f"Suspicious device detected: {mac} (RSSI: {rssi}, Threat Score: {device['threat_score']})" 
+            # Log to database
+            try:
+                log = EventLogModel(
+                    level="WARNING" if is_suspicious else "INFO",
+                    message=f"Device detected: {mac} | RSSI: {rssi} | Threat: {device['threat_score']} | Status: {device['status']}"
                 )
-                db.add(new_log)
+                db.add(log)
+            except Exception as db_err:
+                print(f"DB log error: {db_err}")
 
         await db.commit()
-
         return scan_results
 
-    except subprocess.TimeoutExpired:
-        print("❌ Scanner timeout")
-        return []
     except Exception as e:
-        print("❌ System error:", str(e))
-        import traceback
-        traceback.print_exc()
+        print("Unexpected error in get_devices:", str(e))
         return []
 
 

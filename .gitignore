@@ -12,12 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Python / local environment
-venv/
-wifi_ids.db
-__pycache__/
-*.pyc
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -28,7 +22,16 @@ __pycache__/
 *.njsproj
 *.sln
 *.sw?
+
+# Python / local environment
 venv/
 wifi_ids.db
 __pycache__/
 *.pyc
+*.pkl
+.env
+wifi_ids.db
+*.pyc
+.DS_Store
+dist/
+build/
