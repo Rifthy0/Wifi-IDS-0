@@ -4,7 +4,4 @@
 2. Open `.env` and set `GEMINI_API_KEY` to your Gemini API key
 3. Start the app:
    `Start_IDS.bat`
-<<<<<<< HEAD
-=======
-   
->>>>>>> b2228b7 (Remove demo login credentials and update setup instructions)
+
